@@ -633,7 +633,6 @@ def q1_time(file_path: str) -> List[Tuple[str, str]]:
         """
     
     results = run_bigquery_query(query)
-    return [(row.fecha, row.username) for row in results]
     # Ruta a archivo de credenciales JSON de Google Cloud
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = "../credentials/project-latam-challenge-749ce1a96052.json"
     
