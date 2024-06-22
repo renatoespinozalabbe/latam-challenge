@@ -582,6 +582,7 @@ def q1_time(file_path: str) -> List[Tuple[str, str]]:
     query = """
         WITH TEMP_DATA_001 AS 
         (
+        -- Se crea la tabla temporal sólo con los campos necesarios para realizar ambos cálculos, tanto por fecha como por usuario
         SELECT DATE(date) AS fecha,
             id,
             user.username AS username
@@ -589,35 +590,41 @@ def q1_time(file_path: str) -> List[Tuple[str, str]]:
         WHERE DATE(date) IS NOT NULL
         ), TEMP_DATE_001 AS 
         (
+        -- Se realiza el cálculo de la cantidad de tweets por fecha
         SELECT fecha,
             COUNT(DISTINCT id) AS tweet_qty
         FROM TEMP_DATA_001
         GROUP BY fecha
         ), TEMP_DATE_002 AS 
         (
+        -- Se realiza el ranking de tweets ordenados descendentemente por cantidad de tweets y aleatoriamente
         SELECT A.*,
-            RANK() OVER(ORDER BY tweet_qty DESC, RAND()) AS ranking_tweet
+            RANK() OVER(ORDER BY tweet_qty DESC, RAND()) AS ranking_tweet 
         FROM TEMP_DATE_001 A
         ), TEMP_USER_001 AS 
         (
+        -- Se realiza el cálculo de la cantidad de tweets por usuario y fecha
         SELECT fecha,
             username,
             COUNT(DISTINCT id) AS tweet_qty
         FROM TEMP_DATA_001
         GROUP BY fecha, username
         ), TEMP_USER_002 AS 
+        -- Se realiza el ranking de usuarios por fecha, ordenados descendentemente por cantidad de tweets y aleatoriamente
         (
         SELECT A.*,
             RANK() OVER(PARTITION BY fecha ORDER BY tweet_qty DESC, RAND()) AS ranking_user
         FROM TEMP_USER_001 A
         ), TEMP_USER_003 AS 
         (
+        -- Se seleccionan los usuarios con ranking 1, es decir, aquellos que más tweets hicieron por día
         SELECT A.*
         FROM TEMP_USER_002 A
         WHERE ranking_user=1
         )
+        -- Se filtra la tabla temporal de tweets por fecha, seleccionando sólo los días que se encuentran en el top 10
         SELECT A.fecha,
-        B.username
+            B.username
         FROM TEMP_DATE_002 A
         LEFT JOIN TEMP_USER_003 B
         ON A.fecha=B.fecha 
