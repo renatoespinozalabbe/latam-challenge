@@ -1,5 +1,5 @@
 from typing import List, Tuple
-from datetime import datetime
+from datetime import date, datetime
 import os
 import pandas as pd
 from google.cloud import storage
@@ -11,7 +11,6 @@ def q1_time(file_path: str) -> List[Tuple[str, str]]:
 
     # Se define función para obtener el cliente de BigQuery
     def get_bigquery_client():
-        print('Getting BigQuery client')
         return bigquery.Client()
     
     # Se define función para ejecutar una consulta en BigQuery
@@ -75,11 +74,6 @@ def q1_time(file_path: str) -> List[Tuple[str, str]]:
     # Parámetros para carga de archivo en tabla de bigquery
     dataset_id = 'twitter_data'
     table_id = 'farmers_protest_tweets_2021'
-
-    # if __name__ == "__main__":
-    #     create_bucket_and_upload_file(project_id, bucket_name, file_path, destination_blob_name)
-
-
 
 
     schema = [
@@ -564,20 +558,19 @@ def q1_time(file_path: str) -> List[Tuple[str, str]]:
     ]
 
 
+    # Ruta a archivo de credenciales JSON de Google Cloud
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = "../credentials/project-latam-challenge-749ce1a96052.json"
+    
+    uri = 'gs://bucket-project-latam-challenge-q1-time/farmers-protest-tweets-2021-2-4.json'
 
-    # if __name__ == '__main__':
-    #     uri = 'gs://bucket-project-latam-challenge/farmers-protest-tweets-2021-2-4.json'
-    #     table_ref = f"{project_id}.{dataset_id}.{table_id}"
+    print("Leyendo archivo JSON")
+    df = pd.read_json(file_path,lines=True)
+    print("Creando bucket y subiendo archivo")
+    create_bucket_and_upload_file(project_id, bucket_name, file_path, destination_blob_name)
+    table_ref = f"{project_id}.{dataset_id}.{table_id}"
+    print("Cargando datos a BigQuery")
+    load_data_from_gcs_to_bigquery(uri, table_ref)
 
-    #     load_data_from_gcs_to_bigquery(uri, table_ref)
-    # def get_bigquery_client():
-    #     return bigquery.Client()
-
-    # def run_bigquery_query(query: str):
-    #     client = get_bigquery_client()
-    #     query_job = client.query(query)
-    #     results = query_job.result()
-    #     return results
 
     query = """
         WITH TEMP_DATA_001 AS 
@@ -631,27 +624,9 @@ def q1_time(file_path: str) -> List[Tuple[str, str]]:
         WHERE A.ranking_tweet<=10
         ORDER BY ranking_tweet
         """
-    
+        # Leer el archivo CSV en un DataFrame
+    print("Ejecutando query")
     results = run_bigquery_query(query)
-    # Ruta a archivo de credenciales JSON de Google Cloud
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = "../credentials/project-latam-challenge-749ce1a96052.json"
-    
-    uri = 'gs://bucket-project-latam-challenge/farmers-protest-tweets-2021-2-4.json'
-
-    # Leer el archivo CSV en un DataFrame
-    df = pd.read_json(file_path,lines=True)
-    
-    create_bucket_and_upload_file(project_id, bucket_name, file_path, destination_blob_name)
-
-    if __name__ == '__main__':
-
-        # Asegurarse de que los datos se conviertan al formato correcto antes de devolverlos
-        output = [(row.fecha, row.username) for row in results]
-        
-        # Convertir la fecha al formato datetime.date
-        formatted_output = [(date(fecha.year, fecha.month, fecha.day), username) for fecha, username in output]
-        
-        return formatted_output
-
-
-    pass
+    output = [(row.fecha, row.username) for row in results]
+    formatted_output = [(date(fecha.year, fecha.month, fecha.day), username) for fecha, username in output]
+    return formatted_output
